@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from dotenv import load_dotenv
 import smtplib
 from http.client import HTTPException
@@ -93,31 +94,43 @@ class MailingList(models.Model):
 
         subject = self.message.title
         message = self.message.body
-        from_email = os.getenv("EMAIL_HOST_USER")
+        phone = self.owner.phone_number
+        email = self.owner.email
+        from_email = f'"Компьютерный салон FROMOZA" <{os.getenv("EMAIL_HOST_USER")}>'
         recipient_list = [r.email for r in self.recipients.all()]
+        html_content = render_to_string('mail_template.html', context={
+            'title': subject,
+            'message_body': message,
+            'phone': phone,
+            'contact_email': email,
+            'address': 'г. Северодвинск, ул. Ломоносова 102а, компьютерный салон Formoza',
+            'logo_url': 'https://formoza29.net/images/logo5.jpg',})
 
         try:
             # Отправка писем
-            success_count = send_mail(
-                subject,
-                message,
-                from_email,
-                recipient_list,
-                fail_silently=False,
-            )
+            for recipient in recipient_list:
+                print('Отправка')
+                msg = EmailMultiAlternatives(
+                    subject,
+                    message,
+                    from_email,
+                    [recipient,],
+                )
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
 
-            # Логирование результата
-            self.status = "completed"
-            self.save()
+                # Логирование результата
+                self.status = "completed"
+                self.save()
 
-            SendAttempt.objects.create(
-                mailing_list=self,
-                status="Успешно",
-                response="Письма успешно отправлены",
-                owner=self.owner,
-            )
+                SendAttempt.objects.create(
+                    mailing_list=self,
+                    status="Успешно",
+                    response="Письмо успешно отправлено",
+                    owner=self.owner,
+                )
 
-            return success_count
+            return 1
 
         except smtplib.SMTPException as e:
             self.status = "completed"
