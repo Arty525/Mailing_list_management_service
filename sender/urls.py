@@ -21,6 +21,7 @@ from .views import (
     RunSend,
     ChangeMailingListStatus,
     SendAttemptListView,
+    upload_file,
 )
 
 app_name = "sender"
@@ -31,6 +32,7 @@ urlpatterns = (
         path("", MainView.as_view(), name="index"),
         # получатели рассылок
         path("recipients/add/", RecipientCreateView.as_view(), name="add_recipient"),
+        path('recipients/add_from_file', upload_file, name="add_from_file"),
         path("recipients/list/", RecipientListView.as_view(), name="list_recipients"),
         path(
             "recipients/recipient/<int:pk>", RecipientView.as_view(), name="recipient"

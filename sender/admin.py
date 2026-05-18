@@ -12,9 +12,9 @@ class MailingListAdmin(admin.ModelAdmin):
 
 @admin.register(Recipient)
 class RecipientAdmin(admin.ModelAdmin):
-    list_display = ("email", "full_name")
-    search_fields = ("email", "full_name")
-    list_filter = ("email", "full_name")
+    list_display = ("email", "title")
+    search_fields = ("email", "title")
+    list_filter = ("email", "title")
 
 
 @admin.register(Message)

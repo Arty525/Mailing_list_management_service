@@ -17,12 +17,12 @@ load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 class Recipient(models.Model):
     email = models.EmailField(verbose_name="Email", unique=True)
-    full_name = models.CharField(verbose_name="Ф. И. О.")
-    comment = models.TextField(verbose_name="Комментарий")
+    title = models.CharField(verbose_name="Название", null=True, blank=True, max_length=255)
+    comment = models.TextField(verbose_name="Комментарий", null=True, blank=True)
     owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        return f"{self.email} - {self.full_name}"
+        return f"{self.email} - {self.title}"
 
     class Meta:
         verbose_name = "Получатель"
@@ -35,7 +35,7 @@ class Recipient(models.Model):
 
 class Message(models.Model):
     title = models.CharField(verbose_name="Тема письма", max_length=255)
-    body = models.TextField(verbose_name="Тело письма")
+    body = models.TextField(verbose_name="Текст письма")
     owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
@@ -176,3 +176,13 @@ class SendAttempt(models.Model):
         permissions = [
             ("can_view_attempts", "Can view sent attempts"),
         ]
+
+
+class RecipientsListUpload(models.Model):
+    # Поле для привязки файла. upload_to определяет подпапку внутри MEDIA_ROOT.
+    file = models.FileField(upload_to='recipients_lists/')
+    # Опционально: добавим поле с именем файла и датой загрузки
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    def __str__(self):
+        return self.file.name

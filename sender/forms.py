@@ -1,11 +1,11 @@
 from django import forms
-from .models import Recipient, Message, MailingList
+from .models import Recipient, Message, MailingList, RecipientsListUpload
 
 
 class RecipientForm(forms.ModelForm):
     class Meta:
         model = Recipient
-        fields = ["email", "full_name", "comment"]
+        fields = ["email", "title", "comment"]
 
         def __init__(self):
             super(RecipientForm, self).__init__()
@@ -48,3 +48,10 @@ class MailingListForm(forms.ModelForm):
             self.fields["recipients"].widgets.attrs.update(
                 {"class": "form-check", "placeholder": "Recipients"}
             )
+
+
+class UploadFileForm(forms.Form):
+    file = forms.FileField(
+        label='JSON-файл',
+        help_text='Формат: список объектов с полями "email", "name", "checko_api"'
+    )

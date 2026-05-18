@@ -1,17 +1,33 @@
 {% extends 'sender/base.html' %}
 {% block title %}Список получателей рассылки{% endblock %}
 {% block content %}
-{% if not user.is_staff or user.is_superuser %}
-<a href="{% url 'sender:add_recipient' %}" class="btn btn-outline-primary">Добавить получателя</a>
-{% endif %}
-<ul class="list-group">
-  {% for recipient in recipients %}
-  <li class="list-group-item">
-  <a href="{% url 'sender:recipient' recipient.pk %}" >{{ recipient }} ({{ recipient.comment }})</a>
-  {% if recipient.user == user or user.is_superuser %}
-  <a href="{% url 'sender:delete_recipient' recipient.pk %}" class="btn btn-danger">Удалить получателя</a>
-  {% endif %}
-  </li>
-  {% endfor %}
-</ul>
+    {% if not user.is_staff or user.is_superuser %}
+        <a href="{% url 'sender:add_recipient' %}" class="btn btn-primary">Добавить получателя</a>
+    {% endif %}
+
+    {% if not user.is_staff or user.is_superuser %}
+        <a href="{% url 'sender:add_from_file' %}" class="btn btn-secondary">Добавить получателей из файла</a>
+    {% endif %}
+    <br><br>
+    <ul class="list-group">
+        {% for recipient in recipients %}
+            <li class="list-group-item">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-10">
+                            <a href="{% url 'sender:recipient' recipient.pk %}" >{{ recipient.title }} - {{ recipient.email }}</a>
+                            <br>
+                            ({{ recipient.comment }})
+
+                        </div>
+                        <div class="col" align="right" style="margin-top: 5px;">
+                            {% if recipient.user == user or user.is_superuser %}
+                                <a href="{% url 'sender:delete_recipient' recipient.pk %}" class="btn btn-danger">Удалить получателя</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
 {% endblock %}

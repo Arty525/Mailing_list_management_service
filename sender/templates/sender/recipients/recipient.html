@@ -1,11 +1,11 @@
 {% extends 'sender/base.html' %}
-{% block title %}{{ recipient.full_name }}{% endblock %}
+{% block title %}{{ recipient.title }}{% endblock %}
 {% block content %}
 {% if recipient.user == user or user.is_superuser %}
 <a href="{% url 'sender:update_recipient' recipient.pk %}" class="btn btn-outline-primary">Изменить получателя</a>
 {% endif %}
 <p>{{ recipient.email }}</p>
-<p>{{ recipient.full_name }}</p>
+<p>{{ recipient.title }}</p>
 <p>{{ recipient.comment }}</p>
 {% if recipient.user == user or user.is_superuser %}
 <a href="{% url 'sender:delete_recipient' recipient.pk %}" class="btn btn-danger">Удалить</a>

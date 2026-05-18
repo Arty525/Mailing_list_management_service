@@ -1,29 +1,43 @@
 {% extends 'sender/base.html' %}
 {% block title %}Список рассылок{% endblock %}
 {% block content %}
-{% if not user.is_staff or user.is_superuser %}
-<a href="{% url 'sender:add_mailing_list' %}" class="btn btn-outline-primary">Создать новую рассылку</a>
-{% endif %}
-<div class="list-group">
-  {% for mailing_list in mailing_lists %}
-  <a href="{% url 'sender:mailing_list' mailing_list.pk %}" class="list-group-item list-group-item-action">Сообщение: {{ mailing_list.message }} | Статус: {{ mailing_list.status }} | {% if mailing_list.is_active %}Активна{% else %}Отключена{% endif %} | Автор: {{ mailing_list.user.username }}
-      {% if mailing_list.user == user or user.is_superuser %}
-      <form method="post" action="{% url 'sender:run_send' mailing_list.pk %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-outline-primary">Запустить рассылку</button>
-    </form>
-      {% endif %}
-      {% if perms.sender.can_turn_off %}
-    <form method="post" action="{% url 'sender:turn_off' mailing_list.pk %}" style="padding-top: 10px">
-        {% csrf_token %}
-        {% if mailing_list.is_active %}
-        <button type="submit" class="btn btn-outline-danger">Отключить</button>
-        {% else %}
-        <button type="submit" class="btn btn-outline-success">Включить</button>
-        {% endif %}
-      </form>
-      {% endif %}
-  </a>
-  {% endfor %}
-</div>
+    {% if not user.is_staff or user.is_superuser %}
+        <a href="{% url 'sender:add_mailing_list' %}" class="btn btn-primary">Создать новую рассылку</a><br><br>
+    {% endif %}
+    <div class="list-group">
+        {% for mailing_list in mailing_lists %}
+            <a href="{% url 'sender:mailing_list' mailing_list.pk %}" class="list-group-item list-group-item-action">
+                <h5>{% if mailing_list.is_active %}🟢{% else %}🔴{% endif %} {{ mailing_list.message }}</h5>
+                <div class="alert alert-secondary" role="alert">
+                    <div class="container text-center">
+                        <div class="row" align="left">
+                            <div class="col-9" style="margin-top: 5px;">
+                                Статус: {{ mailing_list.status }} | Автор: {{ mailing_list.user.username }}
+                            </div>
+                            <div class="col-2" style="padding-left: 1px;" align="right">
+                                {% if mailing_list.user == user or user.is_superuser %}
+                                    <form method="post" action="{% url 'sender:run_send' mailing_list.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-primary">Запустить рассылку</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                            <div class="col-1" style="padding-left: 1px;" align="right">
+                                {% if perms.sender.can_turn_off %}
+                                    <form method="post" action="{% url 'sender:turn_off' mailing_list.pk %}">
+                                        {% csrf_token %}
+                                        {% if mailing_list.is_active %}
+                                            <button type="submit" class="btn btn-outline-danger">Отключить</button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline-success">Включить</button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
 {% endblock %}

@@ -1,9 +1,10 @@
+import json
 from pathlib import Path
 
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.cache import cache
 from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import (
@@ -14,7 +15,7 @@ from django.views.generic import (
     DeleteView,
 )
 
-from .forms import RecipientForm, MessageForm, MailingListForm
+from .forms import RecipientForm, MessageForm, MailingListForm, RecipientsListUpload, UploadFileForm
 from .models import Recipient, Message, MailingList, SendAttempt
 from dotenv import load_dotenv
 
@@ -22,6 +23,59 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
+
+def upload_file(request):
+    form = UploadFileForm(request.POST, request.FILES)
+    if request.method == "GET":
+        form.is_valid()
+        return render(request, 'sender/recipients/add_from_file.html', {'form': form})
+    if request.method == 'POST':
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded_file = request.FILES['file']
+
+            # Читаем и валидируем JSON
+            try:
+                data = json.load(uploaded_file)  # загружаем напрямую из файла в памяти
+            except json.JSONDecodeError:
+                form.add_error('file', 'Файл должен содержать корректный JSON')
+                return render(request, 'sender/recipients/add_from_file.html', {'form': form})
+
+            # Обрабатываем каждого получателя
+            created_count = 0
+            for recipient_data in data:
+                email = recipient_data.get('email')
+                if not email:
+                    continue  # пропускаем записи без email
+
+                # Безопасно получаем адрес из вложенного словаря
+                address = None
+                try:
+                    address = recipient_data['checko_api']['data']['ЮрАдрес']['АдресРФ']
+                except (KeyError, TypeError):
+                    address = ''  # или оставить None
+
+                # Используем get_or_create для избежания дублей
+                obj, created = Recipient.objects.get_or_create(
+                    email=email,
+                    defaults={
+                        'title': recipient_data.get('name', ''),
+                        'comment': address,
+                        'owner': request.user
+                    }
+                )
+                if created:
+                    created_count += 1
+
+            # Добавим сообщение об успехе (через messages framework)
+            from django.contrib import messages
+            messages.success(request, f'Импортировано {created_count} новых получателей.')
+            return redirect('sender:list_recipients')
+        else:
+            return render(request, 'sender/recipients/add_from_file.html', {'form': form})
+    else:
+        form = RecipientsListUpload()
+    return render(request, 'sender/recipients/add_from_file.html', {'form': form})
 
 class MainView(ListView):
     model = MailingList
@@ -112,7 +166,7 @@ class RecipientView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
 class RecipientDeleteView(LoginRequiredMixin, DeleteView):
     model = Recipient
     template_name = "sender/recipients/delete.html"
-    success_url = reverse_lazy("sender:index")
+    success_url = reverse_lazy("sender:list_recipients")
     login_url = reverse_lazy("users:login")
 
     def has_permission(self):
@@ -171,7 +225,6 @@ class MessageListView(LoginRequiredMixin, ListView):
             else:
                 queryset = Message.objects.filter(user=self.request.user)
             cache.set(f"messages:{self.request.user.pk}", queryset, 1 * 1)
-        print(f"Данные из кэша: {queryset}")
         return queryset
 
 
@@ -281,7 +334,6 @@ class MailingListsListView(LoginRequiredMixin, ListView):
             else:
                 queryset = MailingList.objects.filter(user=self.request.user)
             cache.set(f"mailing_lists:{self.request.user.pk}", queryset, 1 * 1)
-        print(f"Данные из кэша: {queryset}")
         return queryset
 
 
