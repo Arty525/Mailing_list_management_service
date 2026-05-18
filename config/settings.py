@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+from datetime import timedelta
 from pathlib import Path
 import os
 
@@ -31,7 +31,12 @@ SECRET_KEY = "django-insecure-m_8j*@2&d0*smz3-brsy5((hesm_b^1!=$#o^1_@_(lc**jyt4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1',]
+ALLOWED_HOSTS = [
+    '89.169.178.133',
+    'localhost',
+    '127.0.0.1',
+    'web'
+]
 
 
 # Application definition
@@ -166,3 +171,31 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASS')
 DEFAULT_FROM_EMAIL = os.getenv('APP_EMAIL')
 ADMIN_EMAIL = os.getenv('APP_EMAIL')
+
+#Настройки Celery
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis:6379/0"
+
+# Часовой пояс для работы Celery
+CELERY_TIMEZONE = "Europe/Moscow"
+TIME_ZONE = "Europe/Moscow"  # Ваш часовой пояс
+USE_TZ = True  # Должно быть True
+
+# Флаг отслеживания выполнения задач
+CELERY_TASK_TRACK_STARTED = True
+
+# Максимальное время на выполнение задачи
+CELERY_TASK_TIME_LIMIT = 30 * 60
+
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+CELERY_BEAT_SCHEDULE = {
+    "update_task_status": {
+        "task": "tasktracker.tasks.update_task_status",
+        "schedule": timedelta(minutes=6),
+    },
+    "send_reminders": {
+        "task": "tasktracker.tasks.send_reminder",
+        "schedule": timedelta(hours=6),
+    },
+}
