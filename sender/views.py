@@ -143,9 +143,8 @@ class RecipientListView(LoginRequiredMixin, ListView):
             if self.request.user.has_perm("sender.can_view_recipient"):
                 queryset = Recipient.objects.all()
             else:
-                queryset = Recipient.objects.filter(user=self.request.user)
+                queryset = Recipient.objects.filter(owner=self.request.user)
             cache.set(f"recipients:{self.request.user.pk}", queryset, 1 * 1)
-        print(f"Данные из кэша: {queryset}")
         return queryset
 
 
@@ -223,7 +222,7 @@ class MessageListView(LoginRequiredMixin, ListView):
             if self.request.user.has_perm("sender.can_view_message"):
                 queryset = Message.objects.all()
             else:
-                queryset = Message.objects.filter(user=self.request.user)
+                queryset = Message.objects.filter(owner=self.request.user)
             cache.set(f"messages:{self.request.user.pk}", queryset, 1 * 1)
         return queryset
 
@@ -332,7 +331,7 @@ class MailingListsListView(LoginRequiredMixin, ListView):
             if self.request.user.has_perm("sender.can_view_mailing_list"):
                 queryset = MailingList.objects.all()
             else:
-                queryset = MailingList.objects.filter(user=self.request.user)
+                queryset = MailingList.objects.filter(owner=self.request.user)
             cache.set(f"mailing_lists:{self.request.user.pk}", queryset, 1 * 1)
         return queryset
 
@@ -370,7 +369,7 @@ class SendAttemptListView(LoginRequiredMixin, ListView):
             if self.request.user.has_perm("sender.can_view_attempts"):
                 queryset = SendAttempt.objects.all()
             else:
-                queryset = SendAttempt.objects.filter(user=self.request.user)
+                queryset = SendAttempt.objects.filter(owner=self.request.user)
             cache.set(f"sent_attempts:{self.request.user.pk}", queryset, 1 * 1)
         print(f"Данные из кэша: {queryset}")
         return queryset

@@ -12,8 +12,8 @@ class RecipientForm(forms.ModelForm):
             self.fields["email"].widget.attrs.update(
                 {"class": "form-control", "placeholder": "Email"}
             )
-            self.fields["full_name"].widgets.attrs.update(
-                {"class": "form-control", "placeholder": "Ф. И. О."}
+            self.fields["title"].widgets.attrs.update(
+                {"class": "form-control", "placeholder": "Название"}
             )
             self.fields["comment"].widgets.attrs.update(
                 {"class": "form-control", "placeholder": "Комментарий"}
@@ -36,18 +36,14 @@ class MessageForm(forms.ModelForm):
 
 
 class MailingListForm(forms.ModelForm):
+    recipients = forms.ModelMultipleChoiceField(
+        queryset=Recipient.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        label="Получатели"
+    )
     class Meta:
         model = MailingList
         fields = ["message", "recipients"]
-
-        def __init__(self):
-            super(RecipientForm, self).__init__()
-            self.fields["message"].widgets.attrs.update(
-                {"class": "dropdown", "placeholder": "Message"}
-            )
-            self.fields["recipients"].widgets.attrs.update(
-                {"class": "form-check", "placeholder": "Recipients"}
-            )
 
 
 class UploadFileForm(forms.Form):

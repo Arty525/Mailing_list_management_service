@@ -36,7 +36,7 @@ class CustomUserCreationForm(UserCreationForm):
 class CustomUserUpdateForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ["email", "username"]
+        fields = ["email", "username", "phone_number"]
         REQUIRED_FIELDS = []
 
     def __init__(self, *args, **kwargs):
@@ -47,6 +47,9 @@ class CustomUserUpdateForm(forms.ModelForm):
         )
         self.fields["username"].widget.attrs.update(
             {"class": "form-control", "placeholder": "Имя пользователя"}
+        )
+        self.fields["phone_number"].widget.attrs.update(
+            {"class": "form-control", "placeholder": "Телефон"}
         )
 
 

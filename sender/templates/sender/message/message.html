@@ -1,12 +1,88 @@
 {% extends 'sender/base.html' %}
-{% block title %}{{ recipient.full_name }}{% endblock %}
+{% block title %}{{ message.title }} — Предпросмотр{% endblock %}
+
 {% block content %}
-{% if message.user == user or user.is_superuser %}
-<a href="{% url 'sender:update_message' message.pk %}" class="btn btn-outline-primary">Изменить сообщение</a>
-{% endif %}
-<h1>{{ message.title }}</h1>
-<p>{{ message.body }}</p>
-{% if message.user == user or user.is_superuser %}
-<a href="{% url 'sender:delete_message' message.pk %}" class="btn btn-danger">Удалить</a>
-{% endif %}
+<div class="row">
+    <div class="col-md-6">
+        <h1>{{ message.title }}</h1>
+        <p>{{ message.body|linebreaks }}</p>
+
+        {% if message.user == user or user.is_superuser %}
+            <a href="{% url 'sender:update_message' message.pk %}" class="btn btn-outline-primary">Изменить сообщение</a>
+            <a href="{% url 'sender:delete_message' message.pk %}" class="btn btn-danger">Удалить</a>
+        {% endif %}
+    </div>
+
+    <div class="col-md-6">
+        <h3>Предпросмотр письма</h3>
+        <div class="email-preview" style="border:1px solid #ddd; border-radius:8px; overflow:auto; background:#f4f4f4; padding:20px;">
+            <!-- ВСТРОЕННЫЙ EMAIL-ШАБЛОН (без внешних html/head/body) -->
+            <style>
+                /* Копия стилей из email-шаблона */
+                .email-container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    font-family: Arial, sans-serif;
+                    line-height: 1.5;
+                    color: #333333;
+                }
+                .header {
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin-bottom: 20px;
+                    color: #2c3e50;
+                }
+                .content {
+                    font-size: 16px;
+                    margin-bottom: 30px;
+                }
+                .divider {
+                    border-top: 2px solid #e0e0e0;
+                    margin: 20px 0;
+                }
+                .contacts {
+                    font-size: 14px;
+                    color: #555555;
+                    margin-bottom: 30px;
+                }
+                .logo {
+                    text-align: center;
+                    margin-top: 20px;
+                }
+                .logo img {
+                    max-width: 150px;
+                    height: auto;
+                    border: 0;
+                }
+                @media only screen and (max-width: 480px) {
+                    .email-container {
+                        width: 100% !important;
+                    }
+                }
+            </style>
+
+            <!-- Тело письма (та же структура, что в email-шаблоне) -->
+            <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <tr>
+                    <td style="padding: 30px 20px;">
+                        <h1 style="margin: 0 0 20px 0; font-size: 28px; color: #2c3e50; font-weight: normal;">{{ message.title }}</h1>
+                        <div style="margin-bottom: 30px; font-size: 16px; line-height: 1.6; color: #333333;">
+                            {{ message.body|linebreaksbr }}
+                        </div>
+                        <div style="border-top: 2px solid #e0e0e0; margin: 20px 0;"></div>
+                        <div style="font-size: 14px; color: #555555; margin-bottom: 30px;">
+                            <strong>Контакты:</strong><br>
+                            Телефон: {{ user.phone_number|default:"+7 (999) 123-45-67" }}<br>
+                            Email: <a href="mailto:{{ user.email }}" style="color: #2980b9; text-decoration: none;">{{ user.email }}</a><br>
+                            Адрес: г. Северодвинск, ул. Ломоносова 102а, компьютерный салон Formoza
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <img src="https://formoza29.net/images/logo5.jpg" alt="Formoza" style="max-width: 150px; height: auto; border: 0;">
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

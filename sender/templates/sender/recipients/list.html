@@ -9,6 +9,7 @@
         <a href="{% url 'sender:add_from_file' %}" class="btn btn-secondary">Добавить получателей из файла</a>
     {% endif %}
     <br><br>
+    <p>Всего адресатов: {{ recipients|length }}</p>
     <ul class="list-group">
         {% for recipient in recipients %}
             <li class="list-group-item">

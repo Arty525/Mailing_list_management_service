@@ -22,7 +22,25 @@ class Recipient(models.Model):
     owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        return f"{self.email} - {self.title}"
+        # Получаем заголовки сообщений, связанных с этим получателем
+        messages = MailingList.objects.filter(recipients=self).values_list('message__title', flat=True)
+        total = messages.count()
+
+        # Формируем отображение списка рассылок
+        if total == 0:
+            messages_display = "нет"
+        else:
+            first_two = list(messages[:2])  # берём первые два заголовка
+            rest = total - 2
+            if rest > 0:
+                messages_display = ", ".join(first_two) + f" (+{rest})"
+            else:
+                messages_display = ", ".join(first_two)
+
+        # Выбираем индикатор: зелёный квадрат, если есть рассылки, иначе чёрный
+        label = "⬛" if total == 0 else "🟩"
+
+        return f"{label} {self.title}({self.email}) Связанные рассылки: {messages_display}"
 
     class Meta:
         verbose_name = "Получатель"
@@ -86,9 +104,7 @@ class MailingList(models.Model):
 
     def send(self):
         if not self.is_active:
-            raise HTTPException(
-                "Вы не можете запустить рассылку т.к. она отключена менеджером"
-            )
+            raise HTTPException("Вы не можете запустить рассылку т.к. она отключена менеджером")
         self.status = "started"
         self.save()
 
@@ -97,64 +113,52 @@ class MailingList(models.Model):
         phone = self.owner.phone_number
         email = self.owner.email
         from_email = f'"Компьютерный салон FROMOZA" <{os.getenv("EMAIL_HOST_USER")}>'
-        recipient_list = [r.email for r in self.recipients.all()]
+        recipient_emails = [r.email for r in self.recipients.all()]
         html_content = render_to_string('mail_template.html', context={
             'title': subject,
             'message_body': message,
             'phone': phone,
             'contact_email': email,
             'address': 'г. Северодвинск, ул. Ломоносова 102а, компьютерный салон Formoza',
-            'logo_url': 'https://formoza29.net/images/logo5.jpg',})
+            'logo_url': 'https://formoza29.net/images/logo5.jpg',
+        })
 
-        try:
-            # Отправка писем
-            for recipient in recipient_list:
-                print('Отправка')
+        success_count = 0
+        for recipient in recipient_emails:
+            try:
                 msg = EmailMultiAlternatives(
                     subject,
                     message,
                     from_email,
-                    [recipient,],
+                    [recipient],
                 )
                 msg.attach_alternative(html_content, "text/html")
                 msg.send()
-
-                # Логирование результата
-                self.status = "completed"
-                self.save()
-
+                success_count += 1
                 SendAttempt.objects.create(
                     mailing_list=self,
                     status="Успешно",
                     response="Письмо успешно отправлено",
                     owner=self.owner,
                 )
+            except smtplib.SMTPException as e:
+                SendAttempt.objects.create(
+                    mailing_list=self,
+                    status="Не успешно",
+                    response=f"SMTP ошибка: {str(e)}",
+                    owner=self.owner,
+                )
+            except Exception as e:
+                SendAttempt.objects.create(
+                    mailing_list=self,
+                    status="Не успешно",
+                    response=f"Неизвестная ошибка: {str(e)}",
+                    owner=self.owner,
+                )
 
-            return 1
-
-        except smtplib.SMTPException as e:
-            self.status = "completed"
-            self.save()
-
-            SendAttempt.objects.create(
-                mailing_list=self,
-                status="Не успешно",
-                response=f"SMTP ошибка: {str(e)}",
-                owner=self.owner,
-            )
-            raise
-
-        except Exception as e:
-            self.status = "completed"
-            self.save()
-
-            SendAttempt.objects.create(
-                mailing_list=self,
-                status="Не успешно",
-                response=f"Неизвестная ошибка: {str(e)}",
-                owner=self.owner,
-            )
-            raise
+        self.status = "completed"
+        self.save()
+        return success_count
 
 
 class SendAttempt(models.Model):
