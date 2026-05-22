@@ -21,7 +21,7 @@ from .views import (
     RunSend,
     ChangeMailingListStatus,
     SendAttemptListView,
-    upload_file,
+    upload_file, run_command_recipients_to_excel,
 )
 
 app_name = "sender"
@@ -47,6 +47,7 @@ urlpatterns = (
             RecipientUpdateView.as_view(),
             name="update_recipient",
         ),
+        path('rte_command/', run_command_recipients_to_excel, name='rte_command'),
         # сообщения рассылок
         path("message/add/", MessageCreateView.as_view(), name="add_message"),
         path(

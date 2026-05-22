@@ -1,4 +1,5 @@
 import os
+from datetime import timezone
 from pathlib import Path
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -20,6 +21,9 @@ class Recipient(models.Model):
     title = models.CharField(verbose_name="Название", null=True, blank=True, max_length=255)
     comment = models.TextField(verbose_name="Комментарий", null=True, blank=True)
     owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    status = models.BooleanField(default=True, blank=True, null=True)
+    label = models.CharField(max_length=255, default="⬛")
+    last_send = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         # Получаем заголовки сообщений, связанных с этим получателем
@@ -37,10 +41,10 @@ class Recipient(models.Model):
             else:
                 messages_display = ", ".join(first_two)
 
-        # Выбираем индикатор: зелёный квадрат, если есть рассылки, иначе чёрный
-        label = "⬛" if total == 0 else "🟩"
+        if self.status == False:
+            self.label = "🟥"
 
-        return f"{label} {self.title}({self.email}) Связанные рассылки: {messages_display}"
+        return f"{self.label} {self.title}({self.email}) Связанные рассылки: {messages_display}"
 
     class Meta:
         verbose_name = "Получатель"
@@ -55,6 +59,8 @@ class Message(models.Model):
     title = models.CharField(verbose_name="Тема письма", max_length=255)
     body = models.TextField(verbose_name="Текст письма")
     owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    logo = models.ImageField(upload_to='logos', blank=True, null=True)
+    logo_url = models.URLField(blank=True, null=True, verbose_name='URL логотипа')
 
     def __str__(self):
         return self.title
@@ -141,21 +147,25 @@ class MailingList(models.Model):
                     response="Письмо успешно отправлено",
                     owner=self.owner,
                 )
+                Recipient.objects.filter(email=recipient).update(label="🟩")
             except smtplib.SMTPException as e:
                 SendAttempt.objects.create(
                     mailing_list=self,
                     status="Не успешно",
-                    response=f"SMTP ошибка: {str(e)}",
+                    response=f"SMTP ошибка: {str(e)}, email: {recipient}",
                     owner=self.owner,
                 )
+                Recipient.objects.filter(email=recipient).update(status=False)
+
             except Exception as e:
                 SendAttempt.objects.create(
                     mailing_list=self,
                     status="Не успешно",
-                    response=f"Неизвестная ошибка: {str(e)}",
+                    response=f"Неизвестная ошибка: {str(e)}, email: {recipient}",
                     owner=self.owner,
                 )
-
+                Recipient.objects.filter(email=recipient).update(status=False)
+            Recipient.objects.filter(email=recipient).update(last_send=self.date_last_sent)
         self.status = "completed"
         self.save()
         return success_count

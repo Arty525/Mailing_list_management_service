@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,6 +23,9 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from openpyxl import Workbook
 from openpyxl.styles import Font
+
+from sender.models import Recipient
+from users.models import CustomUser
 
 TOCHKA_REGION_URL = "https://check.tochka.com/region/severodvinsk/"
 CHECKO_API_URL = "https://api.checko.ru/v2/company"

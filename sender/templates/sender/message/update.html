@@ -1,9 +1,139 @@
 {% extends 'sender/base.html' %}
 {% block title %}Изменить сообщение{% endblock %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit" class="btn btn-primary">Изменить</button>
-</form>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Редактирование сообщения</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data" id="messageForm">
+                            {% csrf_token %}
+                            <!-- Заголовок -->
+                            <div class="mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">Заголовок</label>
+                                {{ form.title }}
+                            </div>
+                            <!-- Текст -->
+                            <div class="mb-3">
+                                <label for="{{ form.body.id_for_label }}" class="form-label">Текст письма</label>
+                                {{ form.body }}
+                            </div>
+                            <!-- Загрузка файла логотипа -->
+                            <div class="mb-3">
+                                <label for="{{ form.logo.id_for_label }}" class="form-label">Логотип (загрузить файл)</label>
+                                {{ form.logo }}
+                                {% if form.instance.logo %}
+                                    <div class="mt-2">
+                                        <img src="{{ form.instance.logo.url }}" alt="Текущий логотип" style="max-width: 100px;">
+                                        <div class="form-text">Текущий файл</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <!-- URL логотипа -->
+                            <div class="mb-3">
+                                <label for="{{ form.logo_url.id_for_label }}" class="form-label">Или укажите URL логотипа</label>
+                                {{ form.logo_url }}
+                                {% if form.instance.logo_url %}
+                                    <div class="form-text">Текущий URL: {{ form.instance.logo_url }}</div>
+                                {% endif %}
+                            </div>
+                            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h4 class="mb-0">Предпросмотр письма</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="emailPreview" style="border:1px solid #ddd; border-radius:8px; overflow:auto; background:#f4f4f4; padding:20px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .email-container { max-width:600px; margin:0 auto; font-family:Arial,sans-serif; line-height:1.5; color:#333; }
+        .divider { border-top:2px solid #e0e0e0; margin:20px 0; }
+        .contacts { font-size:14px; color:#555; margin-bottom:30px; }
+        .logo { text-align:center; margin-top:20px; }
+        .logo img { max-width:150px; height:auto; border:0; }
+    </style>
+
+    <script>
+        function updatePreview() {
+            const title = document.getElementById('id_title')?.value || '';
+            const body = document.getElementById('id_body')?.value || '';
+            const phone = '{{ user.phone_number|default:"+7 (999) 123-45-67" }}';
+            const contactEmail = '{{ user.email }}';
+            const address = 'г. Северодвинск, ул. Ломоносова 102а, компьютерный салон Formoza';
+
+            let logoHtml = '';
+            const logoFile = document.getElementById('id_logo');
+            const logoUrlField = document.getElementById('id_logo_url');
+            const currentLogoUrl = '{% if form.instance.logo %}{{ form.instance.logo.url }}{% else %}{% endif %}';
+            const currentLogoUrlFromField = '{{ form.instance.logo_url|default:"" }}';
+            // Приоритет: выбранный файл > существующий файл > указанный URL > существующий URL
+            if (logoFile && logoFile.files && logoFile.files[0]) {
+                const url = URL.createObjectURL(logoFile.files[0]);
+                logoHtml = `<img src="${url}" alt="Логотип" style="max-width:150px;">`;
+            } else if (currentLogoUrl) {
+                logoHtml = `<img src="${currentLogoUrl}" alt="Логотип" style="max-width:150px;">`;
+            } else {
+                let url = logoUrlField?.value.trim() || currentLogoUrlFromField;
+                if (url) {
+                    logoHtml = `<img src="${url}" alt="Логотип" style="max-width:150px;">`;
+                }
+            }
+
+            const html = `
+            <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px; background:#fff; border-radius:8px;">
+                <tr><td style="padding:30px 20px;">
+                    <h1 style="margin:0 0 20px 0;">${escapeHtml(title)}</h1>
+                    <div style="margin-bottom:30px;">${escapeHtml(body).replace(/\n/g, '<br>')}</div>
+                    <div class="divider"></div>
+                    <div class="contacts">
+                        <strong>Контакты:</strong><br>
+                        Телефон: ${escapeHtml(phone)}<br>
+                        Email: <a href="mailto:${escapeHtml(contactEmail)}">${escapeHtml(contactEmail)}</a><br>
+                        Адрес: ${escapeHtml(address)}
+                    </div>
+                    <div class="logo">${logoHtml}</div>
+                </td></tr>
+            </table>
+        `;
+            document.getElementById('emailPreview').innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const title = document.getElementById('id_title');
+            const body = document.getElementById('id_body');
+            const logoFile = document.getElementById('id_logo');
+            const logoUrl = document.getElementById('id_logo_url');
+
+            if (title) title.addEventListener('input', updatePreview);
+            if (body) body.addEventListener('input', updatePreview);
+            if (logoFile) logoFile.addEventListener('change', updatePreview);
+            if (logoUrl) logoUrl.addEventListener('input', updatePreview);
+
+            updatePreview();
+        });
+    </script>
 {% endblock %}

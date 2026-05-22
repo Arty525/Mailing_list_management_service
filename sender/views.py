@@ -18,12 +18,33 @@ from django.views.generic import (
 from .forms import RecipientForm, MessageForm, MailingListForm, RecipientsListUpload, UploadFileForm
 from .models import Recipient, Message, MailingList, SendAttempt
 from dotenv import load_dotenv
+from django.core.management import call_command
+from django.http import JsonResponse
+from django.core.management import call_command
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt  # если нужно, но лучше с csrf
+import sys
+from io import StringIO
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 
+@login_required
+def run_command_recipients_to_excel(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Метод не поддерживается.'}, status=405)
+
+    try:
+        # Перенаправляем вывод команды, чтобы не засорять консоль
+        out = StringIO()
+        call_command('recipients_to_excel', email=request.user.email, force=True, stdout=out)
+        output = out.getvalue()
+        return JsonResponse({'status': 'success', 'message': 'Команда запущена.', 'output': output})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 def upload_file(request):
     form = UploadFileForm(request.POST, request.FILES)
     if request.method == "GET":

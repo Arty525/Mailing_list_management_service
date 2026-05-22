@@ -8,15 +8,32 @@
     {% if not user.is_staff or user.is_superuser %}
         <a href="{% url 'sender:add_from_file' %}" class="btn btn-secondary">Добавить получателей из файла</a>
     {% endif %}
+    <button id="exportBtn" class="btn btn-success">Выгрузить получателей в Excel</button>
+    <script>
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            fetch('{% url "sender:rte_command" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                })
+                .catch(error => console.error('Ошибка:', error));
+        });
+    </script>
     <br><br>
     <p>Всего адресатов: {{ recipients|length }}</p>
     <ul class="list-group">
         {% for recipient in recipients %}
-            <li class="list-group-item">
+            <li class="list-group-item" {% if recipient.status == False %}style="background-color: #842029"{% endif %}>
                 <div class="container">
                     <div class="row">
                         <div class="col-10">
-                            <a href="{% url 'sender:recipient' recipient.pk %}" >{{ recipient.title }} - {{ recipient.email }}</a>
+                            <a href="{% url 'sender:recipient' recipient.pk %}" >{{ recipient.title }} - {{ recipient.email }}</a> | Дата последней рассылки: {{ recipient.last_send }}
                             <br>
                             ({{ recipient.comment }})
 

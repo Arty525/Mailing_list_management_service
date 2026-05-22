@@ -1,10 +1,14 @@
 {% extends 'sender/base.html' %}
 {% block title %}Главная{% endblock %}
 {% block content %}
-<p>{{ user.email }}</p>
-<p>{{ user.username }}</p>
-<p>Успешных попыток отправки: {{ success_attempts }}</p>
-<p>Не успешных попыток отправки: {{ fail_attempts }}</p>
-<p>Отправлено сообщений: {{ sent_messages }}</p>
-<a href="{% url 'users:update' user.pk %}" type="button" class="btn btn-outline-primary">Изменить</a>
+    {% load static %}
+    {% if user.avatar %}
+        <p><img src="{{ user.avatar.url }}" width="100"></p>
+    {% endif %}
+    <p>{{ user.email }}</p>
+    <p>{{ user.username }}</p>
+    <p>Успешных попыток отправки: {{ success_attempts }}</p>
+    <p>Не успешных попыток отправки: {{ fail_attempts }}</p>
+    <p>Отправлено сообщений: {{ sent_messages }}</p>
+    <a href="{% url 'users:update' user.pk %}" type="button" class="btn btn-outline-primary">Изменить</a>
 {% endblock %}
