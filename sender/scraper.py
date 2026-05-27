@@ -11,7 +11,6 @@ import argparse
 import json
 import os
 import re
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,8 +23,8 @@ from dotenv import load_dotenv
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
-from sender.models import Recipient
-from users.models import CustomUser
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 TOCHKA_REGION_URL = "https://check.tochka.com/region/severodvinsk/"
 CHECKO_API_URL = "https://api.checko.ru/v2/company"
@@ -290,23 +289,37 @@ def scrape_tochka(
 
 
 def fetch_checko_company(
-    session: requests.Session, api_key: str, ogrn: str
+    session: requests.Session, api_key: str, ogrn: str, inn: str = None
 ) -> dict[str, Any]:
+    # Приоритет: используем ИНН, если он есть, иначе ОГРН
+    identifier = inn if inn else ogrn
+    param_key = "inn" if inn else "ogrn"
+
     response = session.get(
         CHECKO_API_URL,
-        params={"key": api_key, "ogrn": ogrn},
+        params={"key": api_key, param_key: identifier},
         timeout=60,
     )
     response.raise_for_status()
     payload: dict[str, Any] = response.json()
-    meta = payload.get("meta") or {}
-    if meta.get("status") == "error":
-        raise ScraperError(meta.get("message") or "Ошибка API Checko")
+
+    # Проверяем, есть ли в ответе данные
     data = payload.get("data")
     if not data:
-        raise ScraperError(f"Нет данных в ответе API для ОГРН {ogrn}")
-    return payload
+        raise ScraperError(
+            f"API не вернул данные для {param_key.upper()} {identifier}."
+        )
 
+    # Проверяем, нет ли ошибки в метаданных
+    meta = payload.get("meta") or {}
+    if meta.get("status") == "error":
+        raise ScraperError(meta.get("message") or "Неизвестная ошибка API Checko")
+
+    # Проверяем, что ответ не пустой
+    if not data:
+        raise ScraperError(f"API вернул пустой ответ для {param_key.upper()} {identifier}.")
+
+    return payload
 
 def parse_checko_api(data: dict[str, Any]) -> dict[str, Any]:
     contacts = data.get("Контакты") or {}
